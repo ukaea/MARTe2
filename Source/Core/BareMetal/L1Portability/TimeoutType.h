@@ -41,6 +41,13 @@
 
 namespace MARTe {
 
+enum TimeoutTypeSpecial {
+    TTSNoWait,
+    TTSInfiniteWait,
+    TTSDefault,
+    TTSUnProtected,
+};
+
 /**
  * @brief Timeout type definition.
  *
@@ -82,6 +89,12 @@ public:
      * @param[in] usecs is the time in microseconds.
      */
     inline TimeoutType(const uint64 &usecs);
+
+    /**
+     * @brief Constructor for special values.
+     * @param[special] Internal code for special meanings.
+     */
+    inline TimeoutType(TimeoutTypeSpecial special);
 
     /**
      * @brief Sets the timeout from float32.
@@ -163,6 +176,7 @@ private:
     uint32 msecTimeout;
     /**
      * Timeout in microseconds. usecTimeout = 1000*msecTimeout
+     * Some special values >= unsigned -3
      */
     uint64 usecTimeout;
 //lint -e{1739} Binary operator 'MARTe::TimeoutType::operator==(const MARTe::TimeoutType &) const' should be non-member function (also !=). Justification operation is no symmetric,
@@ -170,28 +184,16 @@ private:
 };
 
 /** Do not wait (or wait indefinitely if blocking is set */
-const TimeoutType TTNoWait(static_cast<uint32>(0x00000000));
+const TimeoutType TTNoWait(TTSNoWait);
 
 /** Infinite wait timeout */
-const TimeoutType TTInfiniteWait(static_cast<uint32>(0xFFFFFFFFu));
+ const TimeoutType TTInfiniteWait(TTSInfiniteWait);
 
 /** Used in semaphore protected codes to specify to bypass the check! */
-const TimeoutType TTUnProtected(static_cast<uint32>(0xFFFFFFFDu));
+ const TimeoutType TTUnProtected(TTSUnProtected);
 
 /** Used in semaphore protected codes to specify to bypass the check! */
-const TimeoutType TTDefault(static_cast<uint32>(0xFFFFFFFEu));
-
-/** Do not wait (or wait indefinitely if blocking is set */
-const TimeoutType TTNoWait64(static_cast<uint64>(0x0000000000000000ULL));
-
-/** Infinite wait timeout */
-const TimeoutType TTInfiniteWait64(static_cast<uint64>(0xFFFFFFFFFFFFFFFFULL));
-
-/** Used in semaphore protected codes to specify to bypass the check! */
-const TimeoutType TTUnProtected64(static_cast<uint64>(0xFFFFFFFFFFFFFFFDULL));
-
-/** Used in semaphore protected codes to specify to bypass the check! */
-const TimeoutType TTDefault64(static_cast<uint64>(0xFFFFFFFFFFFFFFFEULL));
+ const TimeoutType TTDefault(TTSDefault);
 
 /*---------------------------------------------------------------------------*/
 /*                        Inline method definitions                          */
@@ -223,6 +225,16 @@ TimeoutType::TimeoutType(const uint64 &usecs) {
     }
     else {
         msecTimeout = static_cast<uint32>(usecTimeout / 1000u);
+    }
+}
+
+TimeoutType::TimeoutType(TimeoutTypeSpecial special) {
+    if (special == TTSNoWait) {
+        usecTimeout = 0;
+        msecTimeout = 0;
+    } else {
+        usecTimeout = 0xFFFFFFFFFFFFFFFFULL - static_cast<uint64>(special) + 1U;
+        msecTimeout = 0xFFFFFFFFU;
     }
 }
 

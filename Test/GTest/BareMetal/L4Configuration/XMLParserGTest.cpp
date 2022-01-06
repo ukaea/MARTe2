@@ -138,9 +138,9 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Scalar_int32) {
     XMLParserTest parserTest;
     const TypeCastTableTest<int32> table[]={
             {"<var1>(int32) 2147483647</var1>", "var1", 2147483647, true},
-            {"<var2>(int32)-2147483648</var2>", "var2", -2147483648, true},
+            {"<var2>(int32)-2147483648</var2>", "var2", INT32_MIN, true},
             {"<var3>(int32)0b1</var3>", "var3", 1, true},
-            {"<var4>(int32)0x80000000</var4>", "var4", -2147483648, true},
+            {"<var4>(int32)0x80000000</var4>", "var4", INT32_MIN, true},
             {"<var5>(int32) 0xFFFFFFFF</var5>", "var5", -1, true},
             {"<var6>(int32) 2147483648</var6>", "var6", 0, false},
             {0, 0, 0}
@@ -154,9 +154,9 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Scalar_uint32) {
     XMLParserTest parserTest;
     const TypeCastTableTest<uint32> table[]={
             {"<var1>(uint32) 2147483647</var1>", "var1", 2147483647, true},
-            {"<var2> (uint32)4294967295</var2>", "var2", 4294967295, true},
+            {"<var2> (uint32)4294967295</var2>", "var2", 4294967295u, true},
             {"<var3>(uint32)0b1</var3>", "var3", 1, true},
-            {"<var4>(uint32) 0xFFFFFFFF</var4>", "var4", 4294967295, true},
+            {"<var4>(uint32) 0xFFFFFFFF</var4>", "var4", 4294967295u, true},
             {"<var4>(uint32) 0x100000000</var4>", "var4", 0, false},
             {0, 0, 0}
     };
@@ -283,8 +283,8 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Vector_uint16) {
 TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Vector_int32) {
     XMLParserTest parserTest;
     const TypeCastTableTestVector<int32, 5> table[]={
-            {"<var1>(int32) {2147483647 -2147483648 0b1 0x80000000 0xFFFFFFFF}</var1>", "var1", {2147483647, -2147483648, 1,-2147483648, -1}, true},
-            {"<var1>(int32) {2147483647 -2147483648 0b1 0x80000000 0x1FFFFFFFF}</var1>", "var1", {2147483647, -2147483648, 1,-2147483648, -1}, false},
+            {"<var1>(int32) {2147483647 -2147483648 0b1 0x80000000 0xFFFFFFFF}</var1>", "var1", {2147483647, INT32_MIN, 1,INT32_MIN, -1}, true},
+            {"<var1>(int32) {2147483647 -2147483648 0b1 0x80000000 0x1FFFFFFFF}</var1>", "var1", {2147483647, INT32_MIN, 1,INT32_MIN, -1}, false},
             {0, 0, {0}, 0}
     };
 
@@ -295,7 +295,7 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Vector_int32) {
 TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Vector_uint32) {
     XMLParserTest parserTest;
     const TypeCastTableTestVector<uint32, 4> table[]={
-            {"<var1>(uint32) {2147483647, 4294967295 0b1 0xFFFFFFFF}</var1>", "var1", {2147483647, 4294967295, 1, 4294967295}, true},
+            {"<var1>(uint32) {2147483647, 4294967295 0b1 0xFFFFFFFF}</var1>", "var1", {2147483647, 4294967295u, 1, 4294967295u}, true},
             {"<var1>(uint32) {1 0 -1 2}</var1>", "var1", {0}, false},
             {0, 0, {0}, 0}
     };
@@ -405,8 +405,8 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Matrix_uint16) {
 TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Matrix_int32) {
     XMLParserTest parserTest;
     const TypeCastTableTestMatrix<int32, 2,3> table[]={
-            {"<var1>(int32) {{2147483647 -2147483648 0b1}{ 0x80000000 0xFFFFFFFF -1}}</var1>", "var1", {{2147483647, -2147483648, 1},{-2147483648, -1, -1}}, true},
-            {"<var1>(int32) {{2147483648 -2147483648 0b1}{ 0x80000000 0xFFFFFFFF -1}}</var1>", "var1", {{2147483647, -2147483648, 1},{-2147483648, -1, -1}}, false},
+            {"<var1>(int32) {{2147483647 -2147483648 0b1}{ 0x80000000 0xFFFFFFFF -1}}</var1>", "var1", {{2147483647, INT32_MIN, 1},{INT32_MIN, -1, -1}}, true},
+            {"<var1>(int32) {{2147483648 -2147483648 0b1}{ 0x80000000 0xFFFFFFFF -1}}</var1>", "var1", {{2147483647, INT32_MIN, 1},{INT32_MIN, -1, -1}}, false},
             {0, 0, {{0}}, 0}
     };
 
@@ -417,8 +417,8 @@ TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Matrix_int32) {
 TEST(BareMetal_L4Configuration_XMLParserGTest,TestTypeCast_Matrix_uint32) {
     XMLParserTest parserTest;
     const TypeCastTableTestMatrix<uint32, 2,2> table[]={
-            {"<var1>(uint32) {{2147483647, 4294967295 }{0b1 0xFFFFFFFF}}</var1>", "var1", {{2147483647, 4294967295},{ 1, 4294967295}}, true},
-            {"<var1>(uint32) {{2147483647, 4294967296 }{0b1 0xFFFFFFFF}}</var1>", "var1", {{2147483647, 4294967295},{ 1, 4294967295}}, false},
+            {"<var1>(uint32) {{2147483647, 4294967295 }{0b1 0xFFFFFFFF}}</var1>", "var1", {{2147483647, 4294967295u},{ 1, 4294967295u}}, true},
+            {"<var1>(uint32) {{2147483647, 4294967296 }{0b1 0xFFFFFFFF}}</var1>", "var1", {{2147483647, 4294967295u},{ 1, 4294967295u}}, false},
             {0, 0, {{0}}, 0}
     };
 
