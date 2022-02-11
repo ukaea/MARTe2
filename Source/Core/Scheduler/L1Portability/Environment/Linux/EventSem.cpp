@@ -27,7 +27,6 @@
 
 #include <pthread.h>
 #include <math.h>
-#include <sys/timeb.h>
 
 /*---------------------------------------------------------------------------*/
 /*                         Project header includes                           */
@@ -232,25 +231,21 @@ ErrorManagement::ErrorType EventSem::Wait(const TimeoutType &timeout) {
     }
     else {
         if (ok) {
-            struct timespec timesValues;
-            timeb tb;
-            ok = (ftime(&tb) == 0);
-
+            struct timespec timeNow;
+            ok = (clock_gettime(CLOCK_REALTIME, &timeNow) == 0);
             if (ok) {
-                float64 sec = static_cast<float64>(timeout.GetTimeoutMSec());
-                sec += static_cast<float64>(tb.millitm);
-                sec *= 1e-3;
-                sec += static_cast<float64>(tb.time);
-
-                float64 roundValue = floor(sec);
-                timesValues.tv_sec = static_cast<int32>(roundValue);
-                float64 nSec = (sec - roundValue);
-                nSec *= 1e9;
-                timesValues.tv_nsec = static_cast<int32>(nSec);
-                ok = (pthread_mutex_timedlock(&handle->mutexHandle, &timesValues) == 0);
+                struct timespec timeEnd = timeNow;
+                uint64 usec = timeout.GetTimeoutUSec();
+                timeEnd.tv_sec += usec / 1000000;
+                timeEnd.tv_nsec += (usec % 1000000) * 1000;
+                if (timeEnd.tv_nsec >= 1000000000) {
+                    timeEnd.tv_nsec -= 1000000000;
+                    timeEnd.tv_sec += 1;
+                }
+                ok = (pthread_mutex_timedlock(&handle->mutexHandle, &timeEnd) == 0);
                 if (ok) {
                     if (handle->stop) {
-                        ok = (pthread_cond_timedwait(&handle->eventVariable, &handle->mutexHandle, &timesValues) == 0);
+                        ok = (pthread_cond_timedwait(&handle->eventVariable, &handle->mutexHandle, &timeEnd) == 0);
                         if (!ok) {
                             err = ErrorManagement::Timeout;
                     //        REPORT_ERROR_STATIC_0(err, "Information: timeout occurred");
