@@ -34,6 +34,8 @@
 
 #include "../../GeneralDefinitions.h"
 #include "TimeStamp.h"
+#include <time.h>
+
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/
@@ -90,14 +92,9 @@ private:
     float64 period;
 
     /**
-     * Stores the seconds (counting from the epoch) at which a framework instance was executed.
+     * The time from Unix epoch when the instance was initialised.
      */
-    oslong initialSecs;
-
-    /**
-     * Stores the microseconds (counting from the epoch) at which a framework instance was executed.
-     */
-    oslong initialUSecs;
+    struct timespec initialTime;
 
     /**
      * Number of elapsed ticks at the time at which a framework instance was executed.

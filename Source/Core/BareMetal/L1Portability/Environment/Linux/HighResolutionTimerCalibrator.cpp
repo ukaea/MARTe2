@@ -40,7 +40,6 @@
 
 #include "HighResolutionTimerCalibrator.h"
 #include "HighResolutionTimer.h"
-#include "StringHelper.h"
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
@@ -55,83 +54,33 @@ namespace MARTe {
 HighResolutionTimerCalibrator calibratedHighResolutionTimer;
 
 HighResolutionTimerCalibrator::HighResolutionTimerCalibrator() {
-    const uint64 LINUX_CPUINFO_BUFFER_SIZE = 1023u;
     initialTicks = HighResolutionTimer::Counter();
-    frequency = 0u;
-    period = 0.;
+    clock_gettime(CLOCK_REALTIME, &initialTime);
 
-    struct timeval initTime;
-    int32 ret = gettimeofday(&initTime, static_cast<struct timezone *>(NULL));
-
-    initialSecs = initTime.tv_sec;
-    initialUSecs = initTime.tv_usec;
-
-    if (ret == 0) {
-        char8 buffer[LINUX_CPUINFO_BUFFER_SIZE + 1u];
-        memset(&buffer[0], 0, LINUX_CPUINFO_BUFFER_SIZE + 1u);
-
-        FILE *f = fopen("/proc/cpuinfo", "r");
-        size_t size = LINUX_CPUINFO_BUFFER_SIZE;
-        if (f != NULL) {
-            size = fread(&buffer[0], static_cast<size_t>(1u), size, f);
-            fclose(f);
-        }
-        else {
-            REPORT_ERROR_STATIC_0(ErrorManagement::OSError, "HighResolutionTimerCalibrator: fopen()");
-        }
-
-        if (size > 0u) {
-            const char8 *pattern = "MHz";
-            const char8 *p = StringHelper::SearchString(&buffer[0], pattern);
-            if (p != NULL) {
-                p = StringHelper::SearchString(p, ":");
-                p++;
-                float64 freqMHz = strtof(p, static_cast<char8 **>(0));
-                if (freqMHz > 0.) {
-                    float64 frequencyF = freqMHz *= 1.0e6;
-                    period = 1.0 / frequencyF;
-                    frequency = static_cast<uint64>(frequencyF);
-                }
-            }
-        }
-        else {
-            REPORT_ERROR_STATIC_0(ErrorManagement::OSError, "HighResolutionTimerCalibrator: fread()");
-        }
-    }
-    else {
-        REPORT_ERROR_STATIC_0(ErrorManagement::OSError, "HighResolutionTimerCalibrator: gettimeofday()");
-    }
-
+    // clock_gettime precision is at best 1ns, so go with that
+    frequency = 1000000000;
+    period = 1. / frequency;
 }
 
 bool HighResolutionTimerCalibrator::GetTimeStamp(TimeStamp &timeStamp) const {
 
     uint64 ticksFromStart = HighResolutionTimer::Counter() - initialTicks;
 
-    //Use HRT
-    float64 secondsFromStart = static_cast<float64>(ticksFromStart) * period;
-    float64 uSecondsFromStart = (secondsFromStart - floor(secondsFromStart)) * 1e6;
-
-    //Add HRT to the the initial time saved in the calibration.
-    float64 secondsFromEpoch = static_cast<float64>(initialSecs) + secondsFromStart;
-    float64 uSecondsFromEpoch = static_cast<float64>(initialUSecs) + uSecondsFromStart;
-
-    uint32 microseconds = static_cast<uint32>(uSecondsFromEpoch);
-
-    //Check the overflow
-    if (microseconds >= 1000000u) {
-        microseconds -= 1000000u;
-        secondsFromEpoch++;
+    // Add change in internal clock to start time.
+    // Clocks may drift, but we don't care.
+    struct timespec ts = initialTime;
+    ts.tv_sec += ticksFromStart / 1000000000u;
+    ts.tv_nsec += ticksFromStart % 1000000000u;
+    if (ts.tv_nsec >= 1000000000) {
+        ts.tv_sec += 1;
+        ts.tv_nsec -= 1000000000;
     }
 
-    timeStamp.SetMicroseconds(microseconds);
-
     //fill the time structure
-    time_t secondsFromEpoch32 = static_cast<time_t>(secondsFromEpoch);
+    bool ok = timeStamp.ConvertFromEpoch(ts.tv_sec);
+    timeStamp.SetMicroseconds(ts.tv_nsec / 1000);
 
-    bool ret = timeStamp.ConvertFromEpoch(secondsFromEpoch32);
-
-    return ret;
+    return ok;
 }
 
 uint64 HighResolutionTimerCalibrator::GetFrequency() const {
