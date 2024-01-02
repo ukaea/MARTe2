@@ -1,3 +1,17 @@
+# Building on RPI4 Debian 12 Bookworm with gpp version 12.2.0
+
+The new gpp version caused the following steps to build MARTe2.
+Source the shell script in the MARTe2 folder i.e. "source check_gpp_version.sh"
+The script should say "Found g++ --version 12.2.0" (or higher)
+Because of the 'source' command, the script should also have made an Environment Variable BEFORE_GPP_V12P2P0=0
+The 'make' command for MARTe2 and MARTe2-Components must be called from this same instance of the shell, not a new one, to preserve the environment variable BEFORE_GPP_V12P2P0
+This environment variable causes MakeStdLibDefs.armv8-linux to disable some new warnings as follows.
+If BEFORE_GPP_V12P2P0 is 0, MakeStdLibDefs.armv8-linux disregards three new types of compiler warnings which stop build
+on g++ 12.2.0 (warnings stop the build because -Werror is set).
+If BEFORE_GPP_V12P2P0 is 1, the original line in MakeStdLibDefs.armv8-linux is applied (in case builds on older g++ were somehow affected by the above modification)
+Apart from the above, note this MARTe2 repo's makefiles contain a minor fix as libGTEST was not being built for armv8. 
+
+
 # MARTe2
 
 The MARTe software framework is a C++ modular and multi-platform framework for the development of real-time control system applications. 
