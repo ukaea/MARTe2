@@ -16,6 +16,8 @@ on g++ 12.2.0
 If BEFORE_GPP_V12P2P0 is 1, the original line in MakeStdLibDefs.armv8-linux is applied (in case builds on older g++ were somehow affected by the above modification)
 
 Apart from the above, note this MARTe2 repo's makefiles contain a minor fix as libGTEST was not being built for armv8. 
+The build of libGTEST still throws a warning but it completes, perhaps it does not use the MakeStdLibDefs file.
+The "Makefile.cov" files throw warnings throughout the build but these do not stop the build.
 
 
 # MARTe2
