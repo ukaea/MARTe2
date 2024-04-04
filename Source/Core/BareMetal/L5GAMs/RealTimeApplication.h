@@ -162,6 +162,9 @@ public:
      *         ...
      *     }
      *</pre>
+     * @details The user can specify the following parameters
+     *   CheckMultipleProducersWrites = 1 //enable-disable check multiple producers to write on the same data source signal. Default = 1
+     *   CheckSameGamInMoreThreads = 1 //allow a GAM to be declared in more than one RTT per state. Default = 1
      * @param[in] data contains the initialisation data.
      * @return true if the parameters +Functions, +States, +Data and +Scheduler
      * exist and each inherit from ReferenceContainer.
@@ -174,6 +177,13 @@ public:
      *  guarantees that all the MARTe components are ready to be used (e.g. the Scheduler may start to work and execute the GAMs).
      */
     bool ConfigureApplication();
+
+    /**
+     * @brief Calls ConfigureApplication. 
+     * @details Backward compatible registered function for ConfigureApplication.
+     * @return see ConfigureApplication
+     */
+    ErrorManagement::ErrorType ConfigureRealTimeApplication();
 
     /**
      * @brief Configures a RealTimeApplication starting from an existing database.
@@ -225,6 +235,18 @@ public:
      */
     virtual void Purge(ReferenceContainer &purgeList);
 
+
+    /**
+     * @brief Returns true if the RealTimeApplicationConfigurationBuilder must check if a GAM is declared in more than one
+     * RealTimeThread for each RealTimeState
+     */
+    bool CheckSameGamInMoreThreads() const;
+
+    /**
+     * @brief Returns true if the RealTimeApplicationConfigurationBuilder must check if a signal in the DataSource is produced
+     * by more than one GAM in the RealTimeState
+     */
+    bool CheckMultipleProducersWrites() const;
 private:
 
     /**
@@ -306,6 +328,15 @@ private:
      */
     ReferenceT<RegisteredMethodsMessageFilter> filter;
 
+    /**
+     * Check if the GAM is defined in more than one RTT
+     */
+    bool checkSameGamInMoreThreads;
+
+    /**
+     * Check if each signal has only one producer in each state
+     */
+    bool checkMultipleProducersWrites;
 };
 
 }

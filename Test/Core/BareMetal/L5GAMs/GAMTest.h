@@ -217,6 +217,17 @@ public:
     bool TestAddOutputBrokers_InvalidBroker();
 
     /**
+     * @brief Tests the SortBrokers method.
+     */
+    bool TestSortBrokers();
+
+    /**
+     * @brief Tests the SortBrokers method when data sources provide multiple brokers.
+     * The expected behavior is that the order provided by the ds is maintained.
+     */
+    bool TestSortBrokers_MultipleBrokersInDs();
+
+    /**
      * @brief Tests the GetInputBrokers method.
      */
     bool TestGetInputBrokers();

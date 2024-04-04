@@ -40,6 +40,7 @@
 
 #include "HighResolutionTimerCalibrator.h"
 #include "HighResolutionTimer.h"
+#include "StringHelper.h"
 /*---------------------------------------------------------------------------*/
 /*                           Static definitions                              */
 /*---------------------------------------------------------------------------*/
@@ -54,33 +55,60 @@ namespace MARTe {
 HighResolutionTimerCalibrator calibratedHighResolutionTimer;
 
 HighResolutionTimerCalibrator::HighResolutionTimerCalibrator() {
-    initialTicks = HighResolutionTimer::Counter();
-    clock_gettime(CLOCK_REALTIME, &initialTime);
+    struct timespec initTime;
+    memset(&initTime, 0, sizeof(struct timespec));
+    // From man clock_gettime(2)
+    //    CLOCK_MONOTONIC_RAW (since Linux 2.6.28; Linux-specific)
+    //       Similar to CLOCK_MONOTONIC, but provides access to a raw
+    //       hardware-based time that is not subject to NTP adjustments
+    //       or the incremental adjustments performed by adjtime(3).
+    //       This clock does not count time that the system is
+    //       suspended.
+    int32 ret = clock_gettime(CLOCK_MONOTONIC_RAW, &initTime);
 
-    // clock_gettime precision is at best 1ns, so go with that
-    frequency = 1000000000;
-    period = 1. / frequency;
+    initialTicks = HighResolutionTimer::Counter();
+    //We already know that using gettime, the granularity is in nanoseconds
+    //and so the frequency is expressed in GHz
+    period = 1.0e-9;
+    frequency = 1000000000u;
+    
+    initialSecs = initTime.tv_sec;
+    initialUSecs = initTime.tv_nsec / 1000;
+
+    if(ret == 0) {
+        REPORT_ERROR_STATIC_0(ErrorManagement::OSError, "HighResolutionTimerCalibrator: clock_gettime()");
+    }
+
 }
 
 bool HighResolutionTimerCalibrator::GetTimeStamp(TimeStamp &timeStamp) const {
 
     uint64 ticksFromStart = HighResolutionTimer::Counter() - initialTicks;
 
-    // Add change in internal clock to start time.
-    // Clocks may drift, but we don't care.
-    struct timespec ts = initialTime;
-    ts.tv_sec += ticksFromStart / 1000000000u;
-    ts.tv_nsec += ticksFromStart % 1000000000u;
-    if (ts.tv_nsec >= 1000000000) {
-        ts.tv_sec += 1;
-        ts.tv_nsec -= 1000000000;
+    //Use HRT
+    float64 secondsFromStart = static_cast<float64>(ticksFromStart) * period;
+    float64 uSecondsFromStart = (secondsFromStart - floor(secondsFromStart)) * 1e6;
+
+    //Add HRT to the the initial time saved in the calibration.
+    float64 secondsFromEpoch = static_cast<float64>(initialSecs) + secondsFromStart;
+    float64 uSecondsFromEpoch = static_cast<float64>(initialUSecs) + uSecondsFromStart;
+
+    uint32 microseconds = static_cast<uint32>(uSecondsFromEpoch);
+
+    //Check the overflow
+    if (microseconds >= 1000000u) {
+        microseconds -= 1000000u;
+        secondsFromEpoch++;
     }
 
-    //fill the time structure
-    bool ok = timeStamp.ConvertFromEpoch(ts.tv_sec);
-    timeStamp.SetMicroseconds(ts.tv_nsec / 1000);
+    timeStamp.SetMicroseconds(microseconds);
 
-    return ok;
+    //fill the time structure
+    time_t secondsFromEpoch32 = static_cast<time_t>(secondsFromEpoch);
+
+    bool ret = timeStamp.ConvertFromEpoch(secondsFromEpoch32);
+
+    return ret;
 }
 
 uint64 HighResolutionTimerCalibrator::GetFrequency() const {

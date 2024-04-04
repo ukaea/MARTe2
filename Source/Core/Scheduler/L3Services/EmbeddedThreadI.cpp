@@ -205,6 +205,9 @@ ErrorManagement::ErrorType EmbeddedThreadI::Start() {
 
         err.fatalError = (GetThreadId() == 0u);
     }
+    if (err.ErrorsCleared()) {
+        Threads::SetPriority(threadId, priorityClass, priorityLevel);
+    }
 
     return err;
 }
@@ -304,6 +307,11 @@ void EmbeddedThreadI::SetCPUMask(const ProcessorType& cpuMaskIn) {
         cpuMask = cpuMaskIn;
     }
 }
+
+void EmbeddedThreadI::SetThreadNumber(const uint16 threadNumberIn) {
+    threadNumber = threadNumberIn;
+}
+
 
 
 }

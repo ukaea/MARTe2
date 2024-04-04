@@ -37,6 +37,8 @@ CircularStaticList.h
 CompilerTypes.h
 ConfigurationDatabase.cpp
 ConfigurationDatabaseNode.cpp
+ConfigurationLoaderHashCRC.cpp
+ConfigurationLoaderTCP.cpp
 ConfigurationParserI.cpp
 ConsoleLogger.cpp
 CountingSem.cpp
@@ -227,6 +229,7 @@ StringHelper_Portable_Generic.cpp
 StringToFloat.cpp
 StringToInteger.cpp
 StructuredDataI.h
+StructuredDataIHelper.cpp
 TemplateParametersVerificator.h
 ThreadInformation.h
 ThreadInformation_Generic.cpp

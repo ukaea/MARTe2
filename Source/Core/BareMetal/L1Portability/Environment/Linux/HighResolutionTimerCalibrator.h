@@ -101,6 +101,16 @@ private:
      */
     uint64 initialTicks;
 
+    /**
+     * Stores the seconds (counting from the epoch) at which a framework instance was executed.
+     */
+    uint64 initialSecs;
+
+    /**
+     * Stores the microseconds (counting from the epoch) at which a framework instance was executed.
+     */
+    uint64 initialUSecs;
+
 };
 
 }

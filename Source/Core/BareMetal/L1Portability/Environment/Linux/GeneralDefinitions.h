@@ -26,6 +26,7 @@
 
 
 #include <pthread.h>
+#include <netinet/in.h>
 #ifndef NULL
 #define NULL 0
 #endif
@@ -56,8 +57,13 @@ const uint32 NUMBER_OF_GLOBAL_OBJECTS = 64u;
 
 /** This is just to avoid an exception to Rule 3-9-2 of MISRA, given that many Linux operating system calls require a long as an input
  * and the framework does not define such type*/
+#ifdef __LP64__
 typedef long oslong;
 typedef unsigned long osulong;
+#else
+typedef long oslong;
+typedef size_t osulong;
+#endif
 
 #define __ERROR_FUNCTION_NAME__   __PRETTY_FUNCTION__
 
@@ -78,6 +84,8 @@ struct BasicConsoleProperties;
 typedef int32 Handle;
 static const char8 DIRECTORY_SEPARATOR = '/';
 const uint32 SCHED_GRANULARITY_US = 10000u;
+
+typedef in_addr_t InternetAddress;
 
 }
 

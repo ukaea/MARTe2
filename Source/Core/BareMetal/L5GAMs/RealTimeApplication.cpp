@@ -62,7 +62,8 @@ RealTimeApplication::RealTimeApplication() :
     }
     defaultDataSourceName = "";
     index=1u;
-
+    checkSameGamInMoreThreads=true;
+    checkMultipleProducersWrites=true;
 }
 
 /*lint -e{1551} Guarantess that the execution is stopped upon destrucion of the RealTimeApplication*/
@@ -77,6 +78,23 @@ bool RealTimeApplication::Initialise(StructuredDataI & data) {
     index = 1u;
 
     bool ret = ReferenceContainer::Initialise(data);
+
+    if(ret){
+        uint8 checkSameGamInMoreThreadsT=1u;
+        if(!data.Read("CheckSameGamInMoreThreads", checkSameGamInMoreThreadsT)){
+            checkSameGamInMoreThreadsT=1u;
+        }
+        checkSameGamInMoreThreads=(checkSameGamInMoreThreadsT>0u);
+    }
+    if(ret){
+        uint8 checkMultipleProducersWritesT=1u;
+        if(!data.Read("CheckMultipleProducersWrites", checkMultipleProducersWritesT)){
+            checkMultipleProducersWritesT=1u;
+        }
+        checkMultipleProducersWrites=(checkMultipleProducersWritesT>0u);
+    }
+
+
     if (data.MoveRelative("+Data")) {
         if (!data.Read("DefaultDataSource", defaultDataSourceName)) {
             defaultDataSourceName = "";
@@ -434,6 +452,16 @@ bool RealTimeApplication::AddBrokersToFunctions() {
             }
         }
     }
+
+    //sort the data sources
+    uint32 numberOfFunctions = functionsContainer->Size();
+    for (uint32 i = 0u; (i < numberOfFunctions) && (ret); i++) {
+        ReferenceT<GAM> function = functionsContainer->Get(i);
+        if (function.IsValid()) {
+            ret = function->SortBrokers();
+        }
+    }
+
     return ret;
 }
 
@@ -551,10 +579,27 @@ void RealTimeApplication::Purge(ReferenceContainer &purgeList) {
     ReferenceContainer::Purge(purgeList);
 }
 
+
+bool RealTimeApplication::CheckSameGamInMoreThreads() const{
+    return checkSameGamInMoreThreads;
+}
+
+bool RealTimeApplication::CheckMultipleProducersWrites() const{
+    return checkMultipleProducersWrites;
+}
+
+ErrorManagement::ErrorType RealTimeApplication::ConfigureRealTimeApplication() {
+    ErrorManagement::ErrorType err;
+    err.fatalError = !ConfigureApplication();
+    return err;
+}
+
+
 CLASS_REGISTER(RealTimeApplication, "1.0")
 
 CLASS_METHOD_REGISTER(RealTimeApplication, PrepareNextState)
 CLASS_METHOD_REGISTER(RealTimeApplication, StartNextStateExecution)
 CLASS_METHOD_REGISTER(RealTimeApplication, StopCurrentStateExecution)
+CLASS_METHOD_REGISTER(RealTimeApplication, ConfigureRealTimeApplication)
 
 }
