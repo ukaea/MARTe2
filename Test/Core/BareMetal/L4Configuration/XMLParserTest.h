@@ -36,6 +36,9 @@
 #include "ConfigurationDatabase.h"
 #include "StandardParserTest.h"
 
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
+
 /*---------------------------------------------------------------------------*/
 /*                           Class declaration                               */
 /*---------------------------------------------------------------------------*/

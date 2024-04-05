@@ -41,6 +41,14 @@
 using namespace MARTe;
 
 class CircularBufferThreadInputDataSourceTest {
+
+private:
+/**
+* @brief Keeps the number of threads which were already running before the test itself
+*        Used for portable implementations, where some threads belong to the OS itself (e.g. FreeRTOS)
+*/
+uint32 numOfThreadsBefore;
+
 public:
 
     /**
@@ -73,7 +81,22 @@ public:
      * @brief Tests the CircularBufferThreadInputDataSource::Initialise method
      * specifying a PriorityLevel.
      */
-    bool TestInitialise_PriorityLevel();
+    bool TestInitialise_PriorityLevel_Idle();
+
+
+    /**
+     * @brief Tests the CircularBufferThreadInputDataSource::Initialise method
+     * specifying a PriorityLevel.
+     */
+    bool TestInitialise_PriorityLevel_Unknown();
+
+
+    /**
+     * @brief Tests the CircularBufferThreadInputDataSource::Initialise method
+     * specifying a PriorityLevel.
+     */
+    bool TestInitialise_PriorityLevel_RealTime();
+
 
     /**
      * @brief Tests the CircularBufferThreadInputDataSource::Initialise method

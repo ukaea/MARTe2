@@ -214,7 +214,8 @@ bool StreamStructuredDataTest<Printer>::TestWrite(StreamStructuredDataTestWriteS
 
     if (ret) {
         ret = string == table->desResult;
-        printf("|%s||%s| %lld %lld\n", string.Buffer(), table->desResult.Buffer(), string.Size(), table->desResult.Size());
+        printf("|%s||%s| %lld %lld\n", string.Buffer(), table->desResult.Buffer(), 
+                (long long int)string.Size(), (long long int)table->desResult.Size());
 
     }
 

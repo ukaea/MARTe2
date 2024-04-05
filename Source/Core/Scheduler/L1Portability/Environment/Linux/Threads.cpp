@@ -123,8 +123,8 @@ ThreadIdentifier Id() {
 }
 
 /*
- * In linux the priority will vary between 0, i.e. priorityClass = Unknown
- * and priorityLevel = 0 and 99, i.e. priorityClass = RealTime
+ * In linux the priority will vary between 0 and 99, i.e. priorityClass = Unknown
+ * priorityLevel = 0 and priorityClass = RealTime
  * and priorityLevel = 15
  */
 void SetPriority(const ThreadIdentifier &threadId,
@@ -144,6 +144,7 @@ void SetPriority(const ThreadIdentifier &threadId,
             threadInfo->SetPriorityLevel(prioLevel);
             threadInfo->SetPriorityClass(priorityClass);
 
+            int32 policy = SCHED_OTHER;//Default Linux time-sharing scheduling
             uint32 priorityClassNumber = 0u;
             switch (priorityClass) {
                 case UnknownPriorityClass:
@@ -157,16 +158,26 @@ void SetPriority(const ThreadIdentifier &threadId,
                 break;
                 case RealTimePriorityClass:
                 priorityClassNumber = 3u;
+                policy = SCHED_FIFO;//Only put FIFO (more aggressive) for the RealTimePriorityClass
                 break;
             }
-            uint32 priorityLevelToAssign = 28u * priorityClassNumber;
-            priorityLevelToAssign += (static_cast<uint32>(prioLevel));
+            //Scale to range 0-99
+            uint32 priorityLevelToAssign = 25u * priorityClassNumber;
+            float32 priorityLevelF = static_cast<float32>(prioLevel);
+            priorityLevelF *= 24.F;
+            priorityLevelF /= 15.F;
+            priorityLevelToAssign += static_cast<uint32>(priorityLevelF);
+            //Bound the priority to its maximum
+            uint32 maxPriority = static_cast<uint32>(sched_get_priority_max(policy));
+            if (priorityLevelToAssign > maxPriority) {
+                REPORT_ERROR_STATIC_0(ErrorManagement::Warning, "Requested a thread priority that is higher than the one supported by the selected policy - clipping to the maximum value supported by the policy.");
+                priorityLevelToAssign = maxPriority;
+            }
 
-            int32 policy = 0;
             sched_param param;
-            ok = (pthread_getschedparam(threadId, &policy, &param) == 0);
+            int32 ignore = 0;
+            ok = (pthread_getschedparam(threadId, &ignore, &param) == 0);
             if (ok) {
-                policy = SCHED_FIFO;
                 param.sched_priority = static_cast<int32>(priorityLevelToAssign);
                 if (pthread_setschedparam(threadId, policy, &param) != 0) {
                     threadInfo->SetPriorityLevel(oldPriorityLevel);
@@ -450,7 +461,6 @@ ThreadIdentifier FindByName(const char8 *const name) {
     ThreadsDatabase::UnLock();
     return ret;
 }
-
 }
 
 }

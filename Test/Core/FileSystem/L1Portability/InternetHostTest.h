@@ -43,7 +43,7 @@ using namespace MARTe;
  * @brief A structure used for InternetAddress tests
  */
 struct InternetHostTestTable {
-    const char8* address;
+    const char8 *address;
     uint32 relatedNumber;
     uint16 port;
 
@@ -65,7 +65,7 @@ public:
      * @brief Tests if the full constructor set the attributes correctly
      */
     bool TestFullConstructor(uint16 port,
-                             const char8 * address,
+                             const char8 *address,
                              const char8 *expected);
 
     /**
@@ -103,6 +103,19 @@ public:
      */
     bool TestGetLocalAddressAsNumber();
 
+    bool TestGetMACAddress();
+
+    /**
+     * @brief Test a valid and invalid interfaceName
+     * @details if no interface is available the test return true
+     */
+    bool TestConvertInterfaceNameToInterfaceAddressNumber();
+
+    /**
+     * @brief Test a valid and invalid interfaceName
+     */
+    bool TestConvertInterfaceNameToInterfaceAddress();
+
     /**
      * @brief Tests if the port number is set correctly.
      */
@@ -134,9 +147,24 @@ public:
     bool TestSetMulticastGroup();
 
     /**
+     * @brief Tests if the function sets the correct IP Multicast interface address.
+     */
+    bool TestSetMulticastInterfaceAddress();
+
+    /**
+     * @brief Tests if the function sets the correct IP Multicast interface address using the number as input argument.
+     */
+    bool TestSetMulticastInterfaceAddressWithNumber();
+
+    /**
      * @brief Tests if the function returns the correct IP Multicast group.
      */
     bool TestGetMulticastGroup();
+
+    /**
+     * @brief Tests if the function returns the correct IP Multicast interface address.
+     */
+    bool TestGetMulticastInterfaceAddress();
 
     /**
      * @brief Tests if the InternetAddressCore structure is returned correctly.
@@ -157,12 +185,13 @@ public:
      * @brief Tests if the function returns sizeof(InternetMulticastCore).
      */
     bool TestMulticastSize();
+
+//    bool Prova();
 };
 
 /*---------------------------------------------------------------------------*/
 /*                        Inline method definitions                          */
 /*---------------------------------------------------------------------------*/
-
 
 #endif /* INTERNETHOSTTEST_H_ */
 

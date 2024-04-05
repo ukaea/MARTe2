@@ -102,6 +102,8 @@ public:
 
     uint8 GetPriorityLevel();
 
+    Threads::PriorityClassType GetPriorityClass();
+
     uint32 GetStackSize();
 
     float GetSleepTime();
@@ -263,6 +265,10 @@ ProcessorType CircularBufferThreadInputDataSourceTestDS::GetCpuMask() {
 
 uint8 CircularBufferThreadInputDataSourceTestDS::GetPriorityLevel() {
     return executor.GetPriorityLevel();
+}
+
+Threads::PriorityClassType CircularBufferThreadInputDataSourceTestDS::GetPriorityClass() {
+    return executor.GetPriorityClass();
 }
 
 uint32 CircularBufferThreadInputDataSourceTestDS::GetStackSize() {
@@ -445,7 +451,9 @@ static bool InitialiseMemoryMapInputBrokerEnviromentRecall(const char8 * const c
 /*---------------------------------------------------------------------------*/
 
 CircularBufferThreadInputDataSourceTest::CircularBufferThreadInputDataSourceTest() {
-
+    //Taking a snapshot of the number of threads which were running before starting the test
+    //This comes handy when running in FreeRTOS
+    numOfThreadsBefore = Threads::NumberOfThreads();
 }
 #include <stdio.h>
 CircularBufferThreadInputDataSourceTest::~CircularBufferThreadInputDataSourceTest() {
@@ -453,7 +461,7 @@ CircularBufferThreadInputDataSourceTest::~CircularBufferThreadInputDataSourceTes
     ObjectRegistryDatabase::Instance()->Purge();
     uint32 nThreads = Threads::NumberOfThreads();
     printf("Killing threads\n");
-    while (nThreads > 0u) {
+    while (nThreads > numOfThreadsBefore) {
         printf("Thread killed\n");
         ThreadInformation tinfo;
         Threads::GetThreadInfoCopy(tinfo, 0u);
@@ -507,7 +515,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise() {
         ret = (dataSource.GetCpuMask() == 0xFFFFu);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 31u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == THREADS_DEFAULT_STACKSIZE);
@@ -585,7 +596,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_CpuMask() {
         ret = (dataSource.GetCpuMask() == 1);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 31u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == THREADS_DEFAULT_STACKSIZE);
@@ -596,7 +610,7 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_CpuMask() {
     return ret;
 }
 
-bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel() {
+bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel_Idle() {
 
     CircularBufferThreadInputDataSourceTestDS dataSource;
     static const char8 * const configL = ""
@@ -621,7 +635,7 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel() {
             "        +Drv1 = {"
             "            Class = CircularBufferThreadInputDataSourceTestDS"
             "            NumberOfBuffers = 100"
-            "            ReceiverThreadPriority = 30"
+            "            ReceiverThreadPriority = 49"
             "            SleepInMutexSec = 1e-9"
             "        }"
             "        +Timings = {"
@@ -663,7 +677,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel() {
         ret = (dataSource.GetCpuMask() == 0xFFFFu);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 30u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::IdlePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == THREADS_DEFAULT_STACKSIZE);
@@ -673,6 +690,174 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel() {
 
     return ret;
 }
+
+
+
+bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel_Unknown() {
+
+    CircularBufferThreadInputDataSourceTestDS dataSource;
+    static const char8 * const configL = ""
+            "$Application1 = {"
+            "    Class = RealTimeApplication"
+            "    +Functions = {"
+            "        Class = ReferenceContainer"
+            "        +GAMA = {"
+            "            Class = CircularBufferThreadInputDataSourceTestGAM1"
+            "            InputSignals = {"
+            "               Signal1 = {"
+            "                   DataSource = Drv1"
+            "                   Type = uint32"
+            "                   Samples = 3"
+            "                   Frequency = 0"
+            "               }"
+            "            }"
+            "        }"
+            "    }"
+            "    +Data = {"
+            "        Class = ReferenceContainer"
+            "        +Drv1 = {"
+            "            Class = CircularBufferThreadInputDataSourceTestDS"
+            "            NumberOfBuffers = 100"
+            "            ReceiverThreadPriority = 11"
+            "            SleepInMutexSec = 1e-9"
+            "        }"
+            "        +Timings = {"
+            "            Class = TimingDataSource"
+            "        }"
+            "    }"
+            "    +States = {"
+            "        Class = ReferenceContainer"
+            "        +State1 = {"
+            "            Class = RealTimeState"
+            "            +Threads = {"
+            "                Class = ReferenceContainer"
+            "                +Thread1 = {"
+            "                    Class = RealTimeThread"
+            "                    Functions = {GAMA}"
+            "                }"
+            "            }"
+            "        }"
+            "    }"
+            "    +Scheduler = {"
+            "        Class = MemoryMapInputBrokerTestScheduler1"
+            "        TimingDataSource = Timings"
+            "    }"
+            "}";
+
+    ConfigurationDatabase cdb;
+    StreamString configStream = configL;
+    configStream.Seek(0);
+    StandardParser parser(configStream, cdb);
+
+    bool ret = parser.Parse();
+    if (ret) {
+        ret = cdb.MoveAbsolute("$Application1.+Data.+Drv1");
+    }
+    if (ret) {
+        ret = dataSource.Initialise(cdb);
+    }
+    if (ret) {
+        ret = (dataSource.GetCpuMask() == 0xFFFFu);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityLevel() == 7u); //~ 11/24*15
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::UnknownPriorityClass);
+    }
+    if (ret) {
+        ret = (dataSource.GetStackSize() == THREADS_DEFAULT_STACKSIZE);
+    }
+    dataSource.Stop();
+    ObjectRegistryDatabase::Instance()->Purge();
+
+    return ret;
+}
+
+
+
+bool CircularBufferThreadInputDataSourceTest::TestInitialise_PriorityLevel_RealTime() {
+
+    CircularBufferThreadInputDataSourceTestDS dataSource;
+    static const char8 * const configL = ""
+            "$Application1 = {"
+            "    Class = RealTimeApplication"
+            "    +Functions = {"
+            "        Class = ReferenceContainer"
+            "        +GAMA = {"
+            "            Class = CircularBufferThreadInputDataSourceTestGAM1"
+            "            InputSignals = {"
+            "               Signal1 = {"
+            "                   DataSource = Drv1"
+            "                   Type = uint32"
+            "                   Samples = 3"
+            "                   Frequency = 0"
+            "               }"
+            "            }"
+            "        }"
+            "    }"
+            "    +Data = {"
+            "        Class = ReferenceContainer"
+            "        +Drv1 = {"
+            "            Class = CircularBufferThreadInputDataSourceTestDS"
+            "            NumberOfBuffers = 100"
+            "            ReceiverThreadPriority = 98"
+            "            SleepInMutexSec = 1e-9"
+            "        }"
+            "        +Timings = {"
+            "            Class = TimingDataSource"
+            "        }"
+            "    }"
+            "    +States = {"
+            "        Class = ReferenceContainer"
+            "        +State1 = {"
+            "            Class = RealTimeState"
+            "            +Threads = {"
+            "                Class = ReferenceContainer"
+            "                +Thread1 = {"
+            "                    Class = RealTimeThread"
+            "                    Functions = {GAMA}"
+            "                }"
+            "            }"
+            "        }"
+            "    }"
+            "    +Scheduler = {"
+            "        Class = MemoryMapInputBrokerTestScheduler1"
+            "        TimingDataSource = Timings"
+            "    }"
+            "}";
+
+    ConfigurationDatabase cdb;
+    StreamString configStream = configL;
+    configStream.Seek(0);
+    StandardParser parser(configStream, cdb);
+
+    bool ret = parser.Parse();
+    if (ret) {
+        ret = cdb.MoveAbsolute("$Application1.+Data.+Drv1");
+    }
+    if (ret) {
+        ret = dataSource.Initialise(cdb);
+    }
+    if (ret) {
+        ret = (dataSource.GetCpuMask() == 0xFFFFu);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityLevel() == 14u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
+    }
+    if (ret) {
+        ret = (dataSource.GetStackSize() == THREADS_DEFAULT_STACKSIZE);
+    }
+    dataSource.Stop();
+    ObjectRegistryDatabase::Instance()->Purge();
+
+    return ret;
+}
+
+
 
 bool CircularBufferThreadInputDataSourceTest::TestInitialise_StackSize() {
 
@@ -741,7 +926,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_StackSize() {
         ret = (dataSource.GetCpuMask() == 0xFFFFu);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 31u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == 300000);
@@ -820,7 +1008,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_SleepTime() {
         ret = (dataSource.GetCpuMask() == 0xFFFFu);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 31u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == 300000);
@@ -902,7 +1093,10 @@ bool CircularBufferThreadInputDataSourceTest::TestInitialise_SignalDefinitionInt
         ret = (dataSource.GetCpuMask() == 0xFFFFu);
     }
     if (ret) {
-        ret = (dataSource.GetPriorityLevel() == 31u);
+        ret = (dataSource.GetPriorityLevel() == 15u);
+    }
+    if (ret) {
+        ret = (dataSource.GetPriorityClass() == Threads::RealTimePriorityClass);
     }
     if (ret) {
         ret = (dataSource.GetStackSize() == 300000);
@@ -3614,8 +3808,8 @@ bool CircularBufferThreadInputDataSourceTest::TestExecute_TimeStamp() {
     for (uint32 n = 0u; (n < numberOfReads) && (ret); n++) {
         dataSource->ContinueRead();
         if (ret) {
-            ret = broker->Execute();
-            ret &= broker1->Execute();
+            ret = broker1->Execute();
+            ret &= broker->Execute();
         }
         if (ret) {
             uint32 nSamples = 5;

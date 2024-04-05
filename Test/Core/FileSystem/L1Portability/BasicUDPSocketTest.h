@@ -75,6 +75,12 @@ struct ReadWriteUDPTestTable {
  * @brief Tests all the BasicUDPSocket public functions.
  */
 class BasicUDPSocketTest {
+private:
+    /**
+    * @brief Keeps the number of threads which were already running before the test itself
+    *        Used for portable implementations, where some threads belong to the OS itself (e.g. FreeRTOS)
+    */
+    uint32 numOfThreadsBefore;
 public:
 
     /**
@@ -168,9 +174,15 @@ public:
     bool TestWrite(const ReadWriteUDPTestTable* table);
 
     /**
-     * @brief Tests if the Join function behaves correctly
+     * @brief Tests if the Join function behaves correctly.
      */
     bool TestJoin(const ConnectListenUDPTestTable* table);
+
+    /**
+     * @brief Tests if the Join function behaves correctly setting the multicast address.
+     */
+    bool TestJoinMulticastAddress(const ConnectListenUDPTestTable* table);
+
 
 public:
 
@@ -191,6 +203,7 @@ public:
     bool isTimeout;
     bool isValidServer;
     bool isValidClient;
+    bool joinSetAddr;
 
 };
 

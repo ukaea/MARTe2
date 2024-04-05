@@ -47,11 +47,10 @@
 namespace MARTe {
 
 namespace HighResolutionTimer {
+//We keep this empty as all the implementation stays in the HighResolutionTimer.h from Environment
 
+/*
 uint64 Frequency();
-
-
-
 
 inline uint64 Counter() {
 
@@ -82,7 +81,9 @@ inline uint32 Counter32() {
 #endif
 
 }
+*/
 
+//We keep this empty as all the implementation stays in the HighResolutionTimer.h from Environment
 
 }
 }
